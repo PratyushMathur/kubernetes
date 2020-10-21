@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.app.name }}-post-install-job
+  labels:
+    helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+  annotations:
+    # This is what defines this resource as a hook. Without this line, the
+    # job is considered part of the release.
+    "helm.sh/hook": post-install, post-upgrade
+    "helm.sh/hook-weight": "20"
+    "helm.sh/hook-delete-policy": "before-hook-creation"
+spec:
+  backoffLimit: 0
+  template:
+    metadata:
+      name: {{ .Values.app.name }}-post-install-job
+      labels:
+        app.kubernetes.io/name: {{ .Values.app.name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/managed-by: {{ .Release.Service }}
+        helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: {{ .Values.app.name }}-post-db
+        image: pmathur/custom-mysql
+        command: ["/bin/sh","-c"]
+        args: ["mysql -hmysql-service -uroot -p${MYSQL_ROOT_PASSWORD} < employee.sql"]
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: password
