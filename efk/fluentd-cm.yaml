@@ -1,0 +1,51 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: fluentd-config
+  namespace: kube-logging
+  labels:
+    addonmanager.kubernetes.io/mode: Reconcile
+data:
+  output.conf: |-
+    <system>
+      root_dir /tmp/fluentd-buffers/
+    </system>
+
+    # Takes the messages sent over TCP
+    <source>
+      @type forward
+      bind 0.0.0.0
+      port 24224
+    </source>
+
+    # Enriches records with Kubernetes metadata
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+    </filter>
+    <match **>
+      @id elasticsearch
+      @type elasticsearch
+      @log_level info
+      type_name fluentd
+      include_tag_key true
+      host elasticsearch
+      port 9200
+      logstash_format true
+      <buffer>
+        @type file
+        path /var/log/fluentd-buffers/kubernetes.system.buffer
+        flush_mode interval
+        retry_type exponential_backoff
+        flush_thread_count 2
+        flush_interval 5s
+        retry_forever
+        retry_max_interval 30
+        chunk_limit_size 10MB
+        total_limit_size 10MB
+        overflow_action block
+      </buffer>
+    </match>
+
+    <match fluent_bit>
+      type stdout
+    </match>

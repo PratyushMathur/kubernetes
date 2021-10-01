@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    k8s-app: fluentd
+  name: fluentd
+  namespace: kube-logging
+spec:
+  ports:
+  - port: 24224
+    protocol: TCP
+    targetPort: 24224
+  selector:
+    k8s-app: fluentd-logging
+  type: ClusterIP
